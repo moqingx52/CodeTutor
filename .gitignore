@@ -1,0 +1,55 @@
+# Markdown files (local docs only)
+*.md
+
+# .NET
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.DotSettings.user
+publish/
+TestResults/
+*.nupkg
+*.snupkg
+
+# IDE
+.vs/
+.idea/
+*.swp
+*~
+
+# Python / OCR sidecar
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+dist/
+build/
+
+# App data (local runtime)
+*.db
+*.db-shm
+*.db-wal
+logs/
+sessions/
+
+# Secrets
+.env
+.env.*
+appsettings.Development.json
+appsettings.Local.json
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Samples / large binaries
+samples/**/*.mp4
+samples/**/*.png
+samples/**/*.jpg

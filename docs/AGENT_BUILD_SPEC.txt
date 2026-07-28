@@ -1,0 +1,143 @@
+CodeTutor Capture — Agent 构建规格
+==================================
+版本: 1.0 | 日期: 2026-07-29
+本地完整版: CodeTutor_Architecture_Spec.md（不提交 git，*.md 已 gitignore）
+
+一、产品目标
+-----------
+儿童编程题目辅导桌面软件：
+- USB2 采集卡以 UVC 摄像头接入（1280x720@30，优先 MJPEG）
+- 左侧实时预览，右侧累计 OCR 题干 + AI 答案
+- 按一次「截取并识别」→ 存 PNG → 本地 OCR → 首尾重叠拼接
+- DeepSeek 文本 API 答题；OCR 不准时可选视觉模型多图作答
+- 撤销 / 清空 / 历史 / API 配置 / 反馈追问
+
+二、技术栈
+---------
+- C# / .NET 8+（推荐 .NET 10，当前 Linux CI 使用 net8.0）/ Avalonia UI / MVVM
+- FlashCap（摄像头，Windows DirectShow / Linux V4L2）
+- RapidOCR + ONNX Runtime CPU，独立 FastAPI sidecar @ 127.0.0.1:18180
+- SQLite + 文件系统存截图
+- DeepSeek Chat Completions（仅文本）；IVisionAnswerProvider 独立可插拔
+
+三、模块分层（依赖方向）
+-----------------------
+Desktop → Application → Domain
+Infrastructure → Application + Domain
+Domain 零外部依赖；Application 只定义接口与用例；Infrastructure 实现细节。
+
+四、解决方案结构
+---------------
+CodeTutor.sln
+src/CodeTutor.Domain/          — 领域模型
+src/CodeTutor.Application/     — 接口、用例、QuestionTextMerger
+src/CodeTutor.Infrastructure/  — FlashCap、OCR HTTP、SQLite、AI、文件
+src/CodeTutor.Desktop/         — Avalonia Views + ViewModels
+services/ocr-service/          — Python FastAPI + RapidOCR
+tests/CodeTutor.*.Tests/
+
+五、核心接口（Application/Abstractions）
+---------------------------------------
+ICameraService          — 枚举、预览、TryGetLatestFrameCopy
+IOcrService             — RecognizeAsync + HealthCheckAsync
+IQuestionTextMerger     — 行级模糊重叠 + 字符级兜底
+ITextAnswerProvider     — DeepSeek 文本答题 + FollowUp + Test
+IVisionAnswerProvider   — 多图作答（未配置则禁用按钮）
+ISessionRepository      — SQLite 会话 CRUD
+ISecretStore            — Windows DPAPI / Linux 环境变量
+IImageStore             — PNG + 缩略图原子写入
+ICheckpointStore        — 撤销栈（内存 + DB，最多 20 条）
+
+六、用例（Application/UseCases）
+------------------------------
+ICaptureAndOcrUseCase   — checkpoint → 存图 → OCR → merge → 清答案
+IUndoLastCaptureUseCase — 恢复 checkpoint，图片移入 .trash
+IClearSessionUseCase    — 归档当前会话，新建空会话
+ISolveTextUseCase       — OCR 文本 → DeepSeek JSON
+ISolveVisionUseCase     — 全部截图 → 视觉模型
+ILoadSessionUseCase     — 历史加载
+ISaveAndTestApiUseCase  — API Key 保存与测试
+ISendFollowUpUseCase    — 右下角追问
+
+七、相机策略
+-----------
+- 枚举 VideoCharacteristics，评分优先 1280x720@30 MJPEG
+- 预览 latest-frame-wins，回调不做 OCR/IO
+- 截取时深拷贝最新帧
+- Linux: VideoFileCameraService / ImageSequenceCameraService mock
+
+八、OCR Sidecar 协议
+-------------------
+GET  /healthz
+POST /v1/ocr  multipart: image, profile, language, request_id
+返回: fullText, lines[{text, confidence, polygon}], meanConfidence
+
+九、文本拼接规则
+--------------
+1. 已有文本最后 12 行 vs 新 OCR 前 12 行，Levenshtein 模糊匹配
+2. overlapScore >= 0.86 且满足字符/行数阈值 → 去重追加
+3. 字符级兜底：末尾/开头 400 字符，阈值 0.90，最短 15 字符
+4. 无可靠重叠：追加分隔标记，不删字
+5. pHash 重复截图：提示但不追加文字
+
+十、AI 输出 JSON Schema
+-----------------------
+{
+  "questionType": "choice|fill|programming|unknown",
+  "finalAnswer": "",
+  "explanation": "",
+  "code": "",
+  "programmingLanguage": "python|csharp|cpp|unknown",
+  "needsMoreContext": false,
+  "confidence": 0.92
+}
+选择/填空：先 finalAnswer 再 explanation；编程题：只显示 code。
+
+十一、UI 布局（单窗口）
+---------------------
+顶栏：摄像头下拉 + 刷新 + 截取/撤销/文字解答/图片解答/清空/历史
+左：预览 | 右：累计题干(可编辑) + 答案区
+中下：状态 + 反馈/追问
+底栏：Base URL + API Key + 模型 + 保存并测试
+
+十二、状态机
+-----------
+NoCamera → Previewing → OcrProcessing → Ready
+→ SolvingText / SolvingVision
+OCR 与 AI 各最多一个并发任务；Undo/Clear 可取消进行中的任务。
+
+十三、存储
+---------
+Windows: %LOCALAPPDATA%\CodeTutor\
+Linux:   ~/.local/share/CodeTutor/
+sessions/<date>/<session-id>/capture_NNN.png
+SQLite 表: sessions, captures, chat_messages, checkpoints
+
+十四、实施阶段（必须按序）
+-------------------------
+阶段1: 骨架 + Avalonia 布局 + mock camera + SQLite 初始化
+阶段2: FlashCap 真实相机 + 预览 + 单帧保存
+阶段3: RapidOCR sidecar + HTTP client + OCR 显示
+阶段4: 拼接 + checkpoint 撤销 + 历史
+阶段5: DeepSeek 文本答题 + JSON + 追问
+阶段6: IVisionAnswerProvider 多图兜底
+阶段7: Windows 打包 + 稳定性测试
+
+十五、硬性约束（Agent 必须遵守）
+-------------------------------
+1. 不对 30FPS 视频逐帧 OCR
+2. DeepSeek 不假设支持图片；视觉走 IVisionAnswerProvider
+3. 撤销必须精确恢复 checkpoint 前完整状态
+4. API Key Windows DPAPI 存储，日志脱敏
+5. OCR sidecar 只监听 127.0.0.1
+6. 所有 IO 异步，UI 不阻塞
+7. 为拼接、撤销、JSON 解析写单元测试
+8. Linux dotnet build + dotnet test 必须通过
+
+十六、开发命令
+-------------
+dotnet restore && dotnet build CodeTutor.sln
+dotnet test CodeTutor.sln
+python3 -m venv .venv && pip install -r services/ocr-service/requirements.lock.txt
+uvicorn app.main:app --app-dir services/ocr-service --host 127.0.0.1 --port 18180
+dotnet run --project src/CodeTutor.Desktop -- --camera mock-video

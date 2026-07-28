@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>CodeTutor.Application</RootNamespace>
+    <AssemblyName>CodeTutor.Application</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\CodeTutor.Domain\CodeTutor.Domain.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,71 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:CodeTutor.Desktop.ViewModels"
+        x:Class="CodeTutor.Desktop.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Title="CodeTutor Capture"
+        Width="1440" Height="900"
+        MinWidth="1280" MinHeight="800">
+  <Grid RowDefinitions="Auto,*,Auto,Auto" ColumnDefinitions="*,*">
+    <!-- 顶部工具栏 -->
+    <StackPanel Grid.Row="0" Grid.ColumnSpan="2" Orientation="Horizontal" Margin="8" Spacing="8">
+      <TextBlock Text="摄像头" VerticalAlignment="Center"/>
+      <ComboBox Width="220" ItemsSource="{Binding CameraPanel.Cameras}"
+                SelectedItem="{Binding CameraPanel.SelectedCamera}"/>
+      <Button Content="刷新" Command="{Binding CameraPanel.RefreshCameraCommand}"/>
+      <TextBlock Text="{Binding CameraPanel.CameraStatus}" VerticalAlignment="Center" Margin="8,0"/>
+      <Separator/>
+      <Button Content="截取并识别" Command="{Binding QuestionPanel.CaptureAndOcrCommand}"/>
+      <Button Content="− 撤销" Command="{Binding QuestionPanel.UndoCaptureCommand}"/>
+      <Button Content="文字解答" Command="{Binding SolutionPanel.SolveTextCommand}"/>
+      <Button Content="图片直接解答" Command="{Binding SolutionPanel.SolveImagesCommand}"/>
+      <Button Content="全部清空" Command="{Binding QuestionPanel.ClearSessionCommand}"/>
+      <Button Content="历史 ▼" Command="{Binding History.ShowHistoryCommand}"/>
+    </StackPanel>
+
+    <!-- 左侧：相机预览 -->
+    <Border Grid.Row="1" Grid.Column="0" Margin="8" BorderBrush="Gray" BorderThickness="1">
+      <Image Source="{Binding CameraPanel.PreviewBitmap}" Stretch="Uniform"/>
+    </Border>
+
+    <!-- 右侧：累计题干 + 答案 -->
+    <Grid Grid.Row="1" Grid.Column="1" RowDefinitions="*,Auto,*" Margin="8">
+      <StackPanel Grid.Row="0">
+        <TextBlock Text="累计题干（可编辑）" FontWeight="Bold"/>
+        <TextBox Text="{Binding QuestionPanel.WorkingQuestionText}" AcceptsReturn="True"
+                 TextWrapping="Wrap" MinHeight="200"/>
+        <TextBlock Text="{Binding QuestionPanel.StatsText}" Margin="0,4,0,0"/>
+      </StackPanel>
+      <Separator Grid.Row="1" Margin="0,8"/>
+      <StackPanel Grid.Row="2">
+        <TextBlock Text="答案" FontWeight="Bold"/>
+        <TextBlock Text="{Binding SolutionPanel.FinalAnswerText}" FontWeight="SemiBold"/>
+        <TextBlock Text="{Binding SolutionPanel.ExplanationText}" TextWrapping="Wrap" Margin="0,8,0,0"/>
+        <TextBox Text="{Binding SolutionPanel.CodeText}" AcceptsReturn="True"
+                 FontFamily="Consolas,Courier New,monospace" IsVisible="{Binding SolutionPanel.IsProgramming}"
+                 MinHeight="120"/>
+      </StackPanel>
+    </Grid>
+
+    <!-- 状态栏 + 反馈区 -->
+    <Grid Grid.Row="2" Grid.ColumnSpan="2" ColumnDefinitions="*,*" Margin="8,0">
+      <TextBlock Grid.Column="0" Text="{Binding StatusText}" VerticalAlignment="Center"/>
+      <StackPanel Grid.Column="1">
+        <TextBlock Text="反馈 / 追问" FontWeight="Bold"/>
+        <ListBox ItemsSource="{Binding FeedbackPanel.Messages}" MaxHeight="120"/>
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <TextBox Text="{Binding FeedbackPanel.UserMessage}" Width="300"/>
+          <Button Content="发送" Command="{Binding FeedbackPanel.SendFollowUpCommand}"/>
+        </StackPanel>
+      </StackPanel>
+    </Grid>
+
+    <!-- 底部 API 配置 -->
+    <Grid Grid.Row="3" Grid.ColumnSpan="2" ColumnDefinitions="*,*,*,Auto" Margin="8" RowDefinitions="Auto">
+      <TextBox Grid.Column="0" Watermark="Base URL" Text="{Binding Settings.BaseUrl}"/>
+      <TextBox Grid.Column="1" Watermark="API Key" PasswordChar="•" Text="{Binding Settings.ApiKey}"/>
+      <TextBox Grid.Column="2" Watermark="模型" Text="{Binding Settings.Model}"/>
+      <Button Grid.Column="3" Content="保存并测试" Command="{Binding Settings.SaveAndTestCommand}"/>
+    </Grid>
+  </Grid>
+</Window>

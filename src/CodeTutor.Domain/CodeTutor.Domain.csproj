@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>CodeTutor.Domain</RootNamespace>
+    <AssemblyName>CodeTutor.Domain</AssemblyName>
+  </PropertyGroup>
+</Project>
