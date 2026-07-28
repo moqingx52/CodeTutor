@@ -17,4 +17,7 @@
     <ProjectReference Include="..\CodeTutor.Application\CodeTutor.Application.csproj" />
     <ProjectReference Include="..\CodeTutor.Domain\CodeTutor.Domain.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="CodeTutor.Infrastructure.Tests" />
+  </ItemGroup>
 </Project>

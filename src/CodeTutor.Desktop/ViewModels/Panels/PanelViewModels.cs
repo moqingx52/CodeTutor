@@ -1,21 +1,56 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CodeTutor.Application.Abstractions;
+using CodeTutor.Application.Ai;
 
 namespace CodeTutor.Desktop.ViewModels.Panels;
 
-public partial class CameraPanelViewModel : ObservableObject
+public sealed class CameraListItem
 {
-    public ObservableCollection<string> Cameras { get; } = new() { "Mock Camera" };
+    public required string Id { get; init; }
+    public required string Name { get; init; }
+    public required VideoMode SelectedMode { get; init; }
+    public required string ModeDescription { get; init; }
+
+    public override string ToString() => Name;
+}
+
+public partial class CaptureThumbnailItem : ObservableObject, IDisposable
+{
+    public required int Sequence { get; init; }
+    public required string ThumbnailPath { get; init; }
 
     [ObservableProperty]
-    private string? _selectedCamera = "Mock Camera";
+    private object? _image;
+
+    public void Dispose()
+    {
+        if (Image is Avalonia.Media.Imaging.Bitmap bitmap)
+            bitmap.Dispose();
+        Image = null;
+    }
+}
+
+public partial class CameraPanelViewModel : ObservableObject
+{
+    public ObservableCollection<CameraListItem> Cameras { get; } = [];
+    public ObservableCollection<CaptureThumbnailItem> Thumbnails { get; } = [];
+
+    [ObservableProperty]
+    private CameraListItem? _selectedCamera;
 
     [ObservableProperty]
     private object? _previewBitmap;
 
     [ObservableProperty]
     private string _cameraStatus = "未连接";
+
+    [ObservableProperty]
+    private bool _showPreviewPlaceholder = true;
+
+    [ObservableProperty]
+    private bool _hasThumbnails;
 
     public IRelayCommand? RefreshCameraCommand { get; set; }
 }
@@ -27,6 +62,12 @@ public partial class QuestionPanelViewModel : ObservableObject
 
     [ObservableProperty]
     private string _statsText = "已截取 0 张";
+
+    [ObservableProperty]
+    private bool _canCapture = true;
+
+    [ObservableProperty]
+    private bool _canUndo;
 
     public IRelayCommand? CaptureAndOcrCommand { get; set; }
     public IRelayCommand? UndoCaptureCommand { get; set; }
@@ -46,6 +87,15 @@ public partial class SolutionPanelViewModel : ObservableObject
 
     [ObservableProperty]
     private bool _isProgramming;
+
+    [ObservableProperty]
+    private bool _canSolveText;
+
+    [ObservableProperty]
+    private bool _canSolveImages;
+
+    [ObservableProperty]
+    private string _imageSolveToolTip = "DeepSeek 不支持图片识别，请切换到火山方舟";
 
     public IRelayCommand? SolveTextCommand { get; set; }
     public IRelayCommand? SolveImagesCommand { get; set; }
@@ -67,19 +117,44 @@ public partial class HistoryViewModel : ObservableObject
     public IRelayCommand? ShowHistoryCommand { get; set; }
 }
 
+public sealed class AiProviderItem
+{
+    public required AiProviderKind Kind { get; init; }
+    public required string DisplayName { get; init; }
+
+    public override string ToString() => DisplayName;
+}
+
 public partial class SettingsBarViewModel : ObservableObject
 {
+    public ObservableCollection<AiProviderItem> Providers { get; } =
+    [
+        new() { Kind = AiProviderKind.DeepSeek, DisplayName = "DeepSeek" },
+        new() { Kind = AiProviderKind.VolcanoArk, DisplayName = "火山方舟" }
+    ];
+
     [ObservableProperty]
-    private string _baseUrl = "https://api.deepseek.com";
+    private AiProviderItem? _selectedProvider;
 
     [ObservableProperty]
     private string _apiKey = string.Empty;
 
     [ObservableProperty]
-    private string _model = "deepseek-chat";
+    private string _modelDisplay = "deepseek-v4-pro";
+
+    [ObservableProperty]
+    private bool _isModelReadOnly = true;
+
+    [ObservableProperty]
+    private bool _isBalanceVisible = true;
 
     [ObservableProperty]
     private string _testStatus = string.Empty;
 
+    [ObservableProperty]
+    private string _balanceText = "余额：—";
+
     public IRelayCommand? SaveAndTestCommand { get; set; }
+
+    public SettingsBarViewModel() => SelectedProvider = Providers[0];
 }

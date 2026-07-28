@@ -1,5 +1,7 @@
 namespace CodeTutor.Application.UseCases;
 
+using CodeTutor.Application.Ai;
+
 /// <summary>
 /// 截取当前帧 → 保存图片 → OCR → 文本拼接 → 更新会话。
 /// </summary>
@@ -53,7 +55,7 @@ public interface ILoadSessionUseCase
 /// </summary>
 public interface ISaveAndTestApiUseCase
 {
-    Task ExecuteAsync(string baseUrl, string apiKey, string model, CancellationToken ct);
+    Task ExecuteAsync(AiProviderKind provider, string apiKey, string model, CancellationToken ct);
 }
 
 /// <summary>
@@ -62,4 +64,28 @@ public interface ISaveAndTestApiUseCase
 public interface ISendFollowUpUseCase
 {
     Task ExecuteAsync(string message, CancellationToken ct);
+}
+
+/// <summary>
+/// 用户手动编辑累计题干后保存。
+/// </summary>
+public interface IUpdateQuestionTextUseCase
+{
+    Task ExecuteAsync(string text, CancellationToken ct);
+}
+
+/// <summary>
+/// 删除单条历史会话。
+/// </summary>
+public interface IDeleteSessionUseCase
+{
+    Task ExecuteAsync(Guid sessionId, CancellationToken ct);
+}
+
+/// <summary>
+/// 清空全部历史会话（需二次确认，由 UI 负责）。
+/// </summary>
+public interface IClearAllHistoryUseCase
+{
+    Task ExecuteAsync(CancellationToken ct);
 }

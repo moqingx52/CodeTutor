@@ -1,71 +1,132 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:CodeTutor.Desktop.ViewModels"
+        xmlns:panels="using:CodeTutor.Desktop.ViewModels.Panels"
         x:Class="CodeTutor.Desktop.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
-        Title="CodeTutor Capture"
+        Title="CodeTutor 题目辅导"
         Width="1440" Height="900"
         MinWidth="1280" MinHeight="800">
   <Grid RowDefinitions="Auto,*,Auto,Auto" ColumnDefinitions="*,*">
     <!-- 顶部工具栏 -->
     <StackPanel Grid.Row="0" Grid.ColumnSpan="2" Orientation="Horizontal" Margin="8" Spacing="8">
       <TextBlock Text="摄像头" VerticalAlignment="Center"/>
-      <ComboBox Width="220" ItemsSource="{Binding CameraPanel.Cameras}"
+      <ComboBox Width="240" ItemsSource="{Binding CameraPanel.Cameras}"
                 SelectedItem="{Binding CameraPanel.SelectedCamera}"/>
       <Button Content="刷新" Command="{Binding CameraPanel.RefreshCameraCommand}"/>
       <TextBlock Text="{Binding CameraPanel.CameraStatus}" VerticalAlignment="Center" Margin="8,0"/>
       <Separator/>
-      <Button Content="截取并识别" Command="{Binding QuestionPanel.CaptureAndOcrCommand}"/>
-      <Button Content="− 撤销" Command="{Binding QuestionPanel.UndoCaptureCommand}"/>
-      <Button Content="文字解答" Command="{Binding SolutionPanel.SolveTextCommand}"/>
-      <Button Content="图片直接解答" Command="{Binding SolutionPanel.SolveImagesCommand}"/>
+      <Button Content="截取并识别" Command="{Binding QuestionPanel.CaptureAndOcrCommand}"
+              IsEnabled="{Binding QuestionPanel.CanCapture}"/>
+      <Button Content="撤销" Command="{Binding QuestionPanel.UndoCaptureCommand}"
+              IsEnabled="{Binding QuestionPanel.CanUndo}"/>
+      <Button Content="文字解答" Command="{Binding SolutionPanel.SolveTextCommand}"
+              IsEnabled="{Binding SolutionPanel.CanSolveText}"/>
+      <Button Content="图片解答" Command="{Binding SolutionPanel.SolveImagesCommand}"
+              IsEnabled="{Binding SolutionPanel.CanSolveImages}"
+              ToolTip.Tip="{Binding SolutionPanel.ImageSolveToolTip}"/>
       <Button Content="全部清空" Command="{Binding QuestionPanel.ClearSessionCommand}"/>
-      <Button Content="历史 ▼" Command="{Binding History.ShowHistoryCommand}"/>
+      <Button Content="历史" Command="{Binding History.ShowHistoryCommand}"/>
     </StackPanel>
 
-    <!-- 左侧：相机预览 -->
-    <Border Grid.Row="1" Grid.Column="0" Margin="8" BorderBrush="Gray" BorderThickness="1">
-      <Image Source="{Binding CameraPanel.PreviewBitmap}" Stretch="Uniform"/>
-    </Border>
+    <!-- 左侧：相机预览 + 截图缩略图 -->
+    <Grid Grid.Row="1" Grid.Column="0" Margin="8" RowDefinitions="*,Auto">
+      <Border Grid.Row="0" BorderBrush="Gray" BorderThickness="1">
+        <Panel>
+          <Image Source="{Binding CameraPanel.PreviewBitmap}" Stretch="Uniform"/>
+          <TextBlock Text="等待摄像头预览…"
+                     HorizontalAlignment="Center" VerticalAlignment="Center"
+                     Foreground="Gray"
+                     IsVisible="{Binding CameraPanel.ShowPreviewPlaceholder}"/>
+        </Panel>
+      </Border>
+      <StackPanel Grid.Row="1" Margin="0,8,0,0" Spacing="4">
+        <TextBlock Text="已截取缩略图" FontSize="12" Foreground="Gray"
+                   IsVisible="{Binding CameraPanel.HasThumbnails}"/>
+        <ScrollViewer HorizontalScrollBarVisibility="Auto" MaxHeight="100">
+          <ItemsControl ItemsSource="{Binding CameraPanel.Thumbnails}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <StackPanel Orientation="Horizontal" Spacing="6"/>
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="panels:CaptureThumbnailItem">
+                <Border BorderBrush="LightGray" BorderThickness="1" Padding="2">
+                  <StackPanel Width="96">
+                    <Image Source="{Binding Image}" Height="54" Stretch="Uniform"/>
+                    <TextBlock Text="{Binding Sequence, StringFormat='第 {0} 张'}"
+                               HorizontalAlignment="Center" FontSize="11" Foreground="Gray"/>
+                  </StackPanel>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </ScrollViewer>
+      </StackPanel>
+    </Grid>
 
     <!-- 右侧：累计题干 + 答案 -->
     <Grid Grid.Row="1" Grid.Column="1" RowDefinitions="*,Auto,*" Margin="8">
       <StackPanel Grid.Row="0">
         <TextBlock Text="累计题干（可编辑）" FontWeight="Bold"/>
         <TextBox Text="{Binding QuestionPanel.WorkingQuestionText}" AcceptsReturn="True"
+                 Watermark="多次截屏后 OCR 文本将自动拼接显示在此，也可手动修改"
                  TextWrapping="Wrap" MinHeight="200"/>
-        <TextBlock Text="{Binding QuestionPanel.StatsText}" Margin="0,4,0,0"/>
+        <TextBlock Text="{Binding QuestionPanel.StatsText}" Margin="0,4,0,0" Foreground="Gray"/>
       </StackPanel>
       <Separator Grid.Row="1" Margin="0,8"/>
       <StackPanel Grid.Row="2">
-        <TextBlock Text="答案" FontWeight="Bold"/>
+        <DockPanel>
+          <TextBlock Text="答案" FontWeight="Bold" DockPanel.Dock="Left"/>
+          <Button Content="复制代码" DockPanel.Dock="Right" Margin="8,0,0,0"
+                  Command="{Binding SolutionPanel.CopyCodeCommand}"
+                  IsVisible="{Binding SolutionPanel.IsProgramming}"/>
+        </DockPanel>
         <TextBlock Text="{Binding SolutionPanel.FinalAnswerText}" FontWeight="SemiBold"/>
         <TextBlock Text="{Binding SolutionPanel.ExplanationText}" TextWrapping="Wrap" Margin="0,8,0,0"/>
         <TextBox Text="{Binding SolutionPanel.CodeText}" AcceptsReturn="True"
+                 Watermark="编程题代码将显示在此"
                  FontFamily="Consolas,Courier New,monospace" IsVisible="{Binding SolutionPanel.IsProgramming}"
+                 IsReadOnly="True"
                  MinHeight="120"/>
       </StackPanel>
     </Grid>
 
     <!-- 状态栏 + 反馈区 -->
     <Grid Grid.Row="2" Grid.ColumnSpan="2" ColumnDefinitions="*,*" Margin="8,0">
-      <TextBlock Grid.Column="0" Text="{Binding StatusText}" VerticalAlignment="Center"/>
+      <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
+        <TextBlock Text="状态：" VerticalAlignment="Center" FontWeight="SemiBold"/>
+        <TextBlock Text="{Binding StatusText}" VerticalAlignment="Center"/>
+      </StackPanel>
       <StackPanel Grid.Column="1">
         <TextBlock Text="反馈 / 追问" FontWeight="Bold"/>
         <ListBox ItemsSource="{Binding FeedbackPanel.Messages}" MaxHeight="120"/>
         <StackPanel Orientation="Horizontal" Spacing="8">
-          <TextBox Text="{Binding FeedbackPanel.UserMessage}" Width="300"/>
+          <TextBox Text="{Binding FeedbackPanel.UserMessage}" Width="300"
+                   Watermark="输入追问内容…"/>
           <Button Content="发送" Command="{Binding FeedbackPanel.SendFollowUpCommand}"/>
         </StackPanel>
       </StackPanel>
     </Grid>
 
     <!-- 底部 API 配置 -->
-    <Grid Grid.Row="3" Grid.ColumnSpan="2" ColumnDefinitions="*,*,*,Auto" Margin="8" RowDefinitions="Auto">
-      <TextBox Grid.Column="0" Watermark="Base URL" Text="{Binding Settings.BaseUrl}"/>
-      <TextBox Grid.Column="1" Watermark="API Key" PasswordChar="•" Text="{Binding Settings.ApiKey}"/>
-      <TextBox Grid.Column="2" Watermark="模型" Text="{Binding Settings.Model}"/>
-      <Button Grid.Column="3" Content="保存并测试" Command="{Binding Settings.SaveAndTestCommand}"/>
+    <Grid Grid.Row="3" Grid.ColumnSpan="2" ColumnDefinitions="Auto,*,Auto,*,Auto" Margin="8" ColumnSpacing="8">
+      <ComboBox Grid.Column="0" Width="120"
+                ItemsSource="{Binding Settings.Providers}"
+                SelectedItem="{Binding Settings.SelectedProvider}"/>
+      <TextBox Grid.Column="1" Watermark="API 密钥" PasswordChar="•" Text="{Binding Settings.ApiKey}"/>
+      <TextBox Grid.Column="2" Width="220" Watermark="模型 ID"
+               Text="{Binding Settings.ModelDisplay}"
+               IsReadOnly="{Binding Settings.IsModelReadOnly}"
+               VerticalAlignment="Center"/>
+      <TextBlock Grid.Column="3" Text="{Binding Settings.BalanceText}"
+                 VerticalAlignment="Center" TextWrapping="Wrap"
+                 IsVisible="{Binding Settings.IsBalanceVisible}"/>
+      <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="8">
+        <TextBlock Text="{Binding Settings.TestStatus}" VerticalAlignment="Center"/>
+        <Button Content="保存并测试" Command="{Binding Settings.SaveAndTestCommand}"/>
+      </StackPanel>
     </Grid>
   </Grid>
 </Window>

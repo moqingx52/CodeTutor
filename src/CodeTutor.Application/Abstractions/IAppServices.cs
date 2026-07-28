@@ -1,3 +1,4 @@
+using CodeTutor.Application.Ai;
 using CodeTutor.Domain.Common;
 using CodeTutor.Domain.Ocr;
 using CodeTutor.Domain.Sessions;
@@ -52,12 +53,14 @@ public interface ITextAnswerProvider
     Task<SolutionResult> SolveAsync(string questionText, CancellationToken ct);
     Task<string> FollowUpAsync(string questionText, SolutionResult solution, string message, CancellationToken ct);
     Task<ProviderTestResult> TestAsync(CancellationToken ct);
+    Task<BalanceInfo?> GetBalanceAsync(CancellationToken ct);
 }
 
 public interface IVisionAnswerProvider
 {
     bool IsConfigured { get; }
     Task<SolutionResult> SolveFromImagesAsync(IReadOnlyList<string> imagePaths, CancellationToken ct);
+    Task<ProviderTestResult> TestAsync(CancellationToken ct);
 }
 
 public interface ISessionRepository
@@ -65,6 +68,7 @@ public interface ISessionRepository
     Task<StudySession> CreateAsync(CancellationToken ct);
     Task SaveAsync(StudySession session, CancellationToken ct);
     Task<StudySession?> GetAsync(Guid id, CancellationToken ct);
+    Task<StudySession?> GetActiveAsync(CancellationToken ct);
     Task<IReadOnlyList<SessionSummary>> GetRecentAsync(int limit, CancellationToken ct);
     Task DeleteAsync(Guid id, CancellationToken ct);
     Task DeleteAllAsync(CancellationToken ct);
