@@ -1,0 +1,12 @@
+[
+  {
+    "Name": "CodeTutor.Desktop",
+    "Projects": [
+      {
+        "Path": "src\\CodeTutor.Desktop\\CodeTutor.Desktop.csproj",
+        "Action": "Start",
+        "DebugTarget": "CodeTutor.Desktop"
+      }
+    ]
+  }
+]

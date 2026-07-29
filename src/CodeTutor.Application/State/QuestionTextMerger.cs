@@ -1,3 +1,4 @@
+using CodeTutor.Application.Ocr;
 using CodeTutor.Application.Abstractions;
 using CodeTutor.Domain.Ocr;
 
@@ -17,15 +18,17 @@ public sealed class QuestionTextMerger : IQuestionTextMerger
 
     public MergeResult Merge(string existingText, OcrResult incoming)
     {
+        var incomingText = OcrTextNormalizer.Flatten(incoming.FullText).Trim();
+
         if (string.IsNullOrWhiteSpace(existingText))
         {
             return new MergeResult(
-                incoming.FullText.Trim(),
+                incomingText,
                 new MergeDecision(MergeStrategy.First, 0, 0, 1.0, true));
         }
 
         var existingLines = NormalizeToLines(existingText);
-        var incomingLines = NormalizeToLines(incoming.FullText);
+        var incomingLines = NormalizeToLines(incomingText);
 
         var bestLine = FindBestLineOverlap(
             existingLines.TakeLast(MaxLineWindow).ToList(),
@@ -38,18 +41,18 @@ public sealed class QuestionTextMerger : IQuestionTextMerger
         }
 
         var tail = Tail(existingText, CharWindow);
-        var head = Head(incoming.FullText, CharWindow);
+        var head = Head(incomingText, CharWindow);
         var charOverlap = FindCharacterOverlap(tail, head);
 
         if (charOverlap.IsReliable)
         {
-            var merged = existingText + incoming.FullText[charOverlap.OverlapCharCount..];
+            var merged = existingText + incomingText[charOverlap.OverlapCharCount..];
             return new MergeResult(merged.TrimEnd(), charOverlap);
         }
 
         var separator = "\n\n--- 新截图：未检测到可靠重叠，请检查 ---\n";
         return new MergeResult(
-            existingText.TrimEnd() + separator + incoming.FullText.Trim(),
+            existingText.TrimEnd() + separator + incomingText,
             new MergeDecision(MergeStrategy.NoOverlapWithWarning, 0, 0, 0, false));
     }
 
@@ -139,7 +142,7 @@ public sealed class QuestionTextMerger : IQuestionTextMerger
         if (string.IsNullOrWhiteSpace(rest))
             return existing.TrimEnd();
 
-        return existing.TrimEnd() + "\n" + rest;
+        return existing.TrimEnd() + rest;
     }
 
     private static string NormalizeLine(string line) =>

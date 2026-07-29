@@ -102,7 +102,7 @@ async def ocr(
             polygon = [[float(p[0]), float(p[1])] for p in box]
             lines.append(OcrLineResponse(text=text, confidence=score, polygon=polygon))
 
-    full_text = "\n".join(line.text for line in lines)
+    full_text = "".join(line.text for line in lines)
     mean_conf = sum(line.confidence for line in lines) / len(lines) if lines else 0.0
     height, width = decoded.shape[:2]
 

@@ -68,13 +68,18 @@
 
     <!-- 右侧：累计题干 + 答案 -->
     <Grid Grid.Row="1" Grid.Column="1" RowDefinitions="*,Auto,*" Margin="8">
-      <StackPanel Grid.Row="0">
+      <Grid Grid.Row="0" RowDefinitions="Auto,*,Auto">
         <TextBlock Text="累计题干（可编辑）" FontWeight="Bold"/>
-        <TextBox Text="{Binding QuestionPanel.WorkingQuestionText}" AcceptsReturn="True"
+        <TextBox Grid.Row="1"
+                 Text="{Binding QuestionPanel.WorkingQuestionText}"
+                 AcceptsReturn="True"
                  Watermark="多次截屏后 OCR 文本将自动拼接显示在此，也可手动修改"
-                 TextWrapping="Wrap" MinHeight="200"/>
-        <TextBlock Text="{Binding QuestionPanel.StatsText}" Margin="0,4,0,0" Foreground="Gray"/>
-      </StackPanel>
+                 TextWrapping="Wrap"
+                 VerticalScrollBarVisibility="Auto"
+                 HorizontalScrollBarVisibility="Disabled"
+                 MinHeight="120"/>
+        <TextBlock Grid.Row="2" Text="{Binding QuestionPanel.StatsText}" Margin="0,4,0,0" Foreground="Gray"/>
+      </Grid>
       <Separator Grid.Row="1" Margin="0,8"/>
       <StackPanel Grid.Row="2">
         <DockPanel>
