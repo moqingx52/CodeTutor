@@ -94,24 +94,33 @@
         </Grid>
       </Grid>
       <Separator Grid.Row="1" Margin="0,8"/>
-      <Grid Grid.Row="2" RowDefinitions="Auto,Auto,Auto,Auto,*">
+      <Grid Grid.Row="2" RowDefinitions="Auto,*">
         <DockPanel Grid.Row="0">
           <TextBlock Text="答案" FontWeight="Bold" DockPanel.Dock="Left"/>
           <Button Content="复制代码" DockPanel.Dock="Right" Margin="8,0,0,0"
                   Command="{Binding SolutionPanel.CopyCodeCommand}"
                   IsVisible="{Binding SolutionPanel.IsProgramming}"/>
         </DockPanel>
-        <TextBlock Grid.Row="1" Text="{Binding SolutionPanel.FinalAnswerText}" FontWeight="SemiBold"/>
-        <TextBlock Grid.Row="2" Text="{Binding SolutionPanel.ExplanationText}" TextWrapping="Wrap" Margin="0,8,0,0"/>
-        <TextBlock Grid.Row="3" Text="{Binding SolutionPanel.FollowUpText}" TextWrapping="Wrap"
-                   Margin="0,8,0,0" Foreground="#333333"
-                   IsVisible="{Binding SolutionPanel.HasFollowUp}"/>
-        <ScrollViewer Grid.Row="4"
+        <ScrollViewer Grid.Row="1"
+                      x:Name="AnswerScrollViewer"
+                      VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Disabled"
+                      MinHeight="120"
+                      IsVisible="{Binding !SolutionPanel.IsProgramming}">
+          <StackPanel Spacing="8"
+                      MinWidth="{Binding Bounds.Width, ElementName=AnswerScrollViewer}">
+            <TextBlock Text="{Binding SolutionPanel.FinalAnswerText}" FontWeight="SemiBold"/>
+            <TextBlock Text="{Binding SolutionPanel.ExplanationText}" TextWrapping="Wrap"/>
+            <TextBlock Text="{Binding SolutionPanel.FollowUpText}" TextWrapping="Wrap"
+                       Foreground="#333333"
+                       IsVisible="{Binding SolutionPanel.HasFollowUp}"/>
+          </StackPanel>
+        </ScrollViewer>
+        <ScrollViewer Grid.Row="1"
                       x:Name="CodeScrollViewer"
                       VerticalScrollBarVisibility="Auto"
                       HorizontalScrollBarVisibility="Auto"
                       MinHeight="120"
-                      Margin="0,8,0,0"
                       IsVisible="{Binding SolutionPanel.IsProgramming}">
           <TextBox Text="{Binding SolutionPanel.CodeText}"
                    AcceptsReturn="True"
