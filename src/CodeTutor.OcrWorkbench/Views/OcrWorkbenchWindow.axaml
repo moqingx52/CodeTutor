@@ -6,11 +6,15 @@
         x:Class="CodeTutor.OcrWorkbench.Views.OcrWorkbenchWindow"
         x:DataType="vm:OcrWorkbenchViewModel"
         Title="CodeTutor OCR"
-        Width="3440" Height="1440"
-        MinWidth="3440" MinHeight="1440">
-  <Grid ColumnDefinitions="2560,*">
-    <!-- 左侧：2560×1440 采集卡预览 -->
-    <Border Grid.Column="0" BorderBrush="Gray" BorderThickness="0,0,1,0">
+        Width="2560" Height="1080"
+        MinWidth="2240" MinHeight="1080"
+        WindowState="Maximized">
+  <Grid ColumnDefinitions="1920,*">
+    <!-- 左侧：固定 1920×1080 采集卡预览 -->
+    <Border Grid.Column="0"
+            Width="1920" Height="1080"
+            VerticalAlignment="Top"
+            BorderBrush="Gray" BorderThickness="0,0,1,0">
       <Grid>
         <controls:CameraPreviewWithRoi Source="{Binding CameraPanel.PreviewBitmap}"
                                        Region="{Binding CameraPanel.CaptureRegion, Mode=TwoWay}"
