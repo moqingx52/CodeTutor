@@ -11,23 +11,23 @@ public class QuestionTextMergerTests
     [Fact]
     public void Merge_FirstCapture_ReturnsIncomingText()
     {
-        var incoming = new OcrResult("第一行第二行", 0.95, TimeSpan.Zero, []);
+        var incoming = new OcrResult("第一行\n第二行", 0.95, TimeSpan.Zero, []);
         var result = _merger.Merge(string.Empty, incoming);
-        result.MergedText.Should().Be("第一行第二行");
+        result.MergedText.Should().Be("第一行\n第二行");
         result.Decision.Strategy.Should().Be(MergeStrategy.First);
     }
 
     [Fact]
     public void Merge_LineOverlap_RemovesDuplicateLines()
     {
-        var existing = "题目：编写函数计算列表中偶数之和。输入第一行是整数 n。第二行包含 n 个整数。";
+        var existing = "题目：编写函数计算列表中偶数之和。\n输入第一行是整数 n。\n第二行包含 n 个整数。";
         var incoming = new OcrResult(
-            "第二行包含 n 个整数。输出所有偶数的和。示例输入：5",
+            "第二行包含 n 个整数。\n输出所有偶数的和。\n示例输入：5",
             0.94, TimeSpan.Zero, []);
 
         var result = _merger.Merge(existing, incoming);
         result.MergedText.Should().Contain("输出所有偶数的和");
-        result.MergedText.Should().NotContain("整数。第二行包含 n 个整数。第二行");
+        result.MergedText.Split("第二行包含 n 个整数").Length.Should().Be(2);
     }
 
     [Fact]

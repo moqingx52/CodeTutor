@@ -1,4 +1,3 @@
-using CodeTutor.Application.Ocr;
 using CodeTutor.Application.Abstractions;
 using CodeTutor.Domain.Ocr;
 
@@ -18,7 +17,7 @@ public sealed class QuestionTextMerger : IQuestionTextMerger
 
     public MergeResult Merge(string existingText, OcrResult incoming)
     {
-        var incomingText = OcrTextNormalizer.Flatten(incoming.FullText).Trim();
+        var incomingText = incoming.FullText.Trim();
 
         if (string.IsNullOrWhiteSpace(existingText))
         {
@@ -141,7 +140,7 @@ public sealed class QuestionTextMerger : IQuestionTextMerger
         if (string.IsNullOrWhiteSpace(rest))
             return existing.TrimEnd();
 
-        return existing.TrimEnd() + rest;
+        return existing.TrimEnd() + "\n" + rest;
     }
 
     private static string NormalizeLine(string line) =>

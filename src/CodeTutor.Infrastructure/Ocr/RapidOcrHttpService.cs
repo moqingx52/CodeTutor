@@ -1,7 +1,6 @@
 using System.Net.Http.Json;
 using System.Text.Json;
 using CodeTutor.Application.Abstractions;
-using CodeTutor.Application.Ocr;
 using CodeTutor.Domain.Ocr;
 
 namespace CodeTutor.Infrastructure.Ocr;
@@ -43,7 +42,7 @@ public sealed class RapidOcrHttpService : IOcrService
                   ?? throw new InvalidOperationException("Empty OCR response.");
 
         return new OcrResult(
-            OcrTextNormalizer.Flatten(dto.FullText ?? string.Empty),
+            dto.FullText ?? string.Empty,
             dto.MeanConfidence,
             DateTimeOffset.UtcNow - started,
             dto.Lines?.Select(l => new OcrLine(
