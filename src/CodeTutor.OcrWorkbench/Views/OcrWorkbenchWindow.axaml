@@ -1,0 +1,110 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:CodeTutor.OcrWorkbench.ViewModels"
+        xmlns:panels="using:CodeTutor.OcrWorkbench.ViewModels.Panels"
+        xmlns:controls="using:CodeTutor.UI.Controls"
+        x:Class="CodeTutor.OcrWorkbench.Views.OcrWorkbenchWindow"
+        x:DataType="vm:OcrWorkbenchViewModel"
+        Title="CodeTutor OCR"
+        Width="3440" Height="1440"
+        MinWidth="3440" MinHeight="1440">
+  <Grid ColumnDefinitions="2560,*">
+    <!-- 左侧：2560×1440 采集卡预览 -->
+    <Border Grid.Column="0" BorderBrush="Gray" BorderThickness="0,0,1,0">
+      <Grid>
+        <controls:CameraPreviewWithRoi Source="{Binding CameraPanel.PreviewBitmap}"
+                                       Region="{Binding CameraPanel.CaptureRegion, Mode=TwoWay}"
+                                       LivePreviewEnabled="True"/>
+        <TextBlock Text="等待摄像头预览…"
+                   HorizontalAlignment="Center" VerticalAlignment="Center"
+                   Foreground="Gray" FontSize="24"
+                   IsVisible="{Binding CameraPanel.ShowPreviewPlaceholder}"/>
+      </Grid>
+    </Border>
+
+    <!-- 右侧：OCR 操作与结果 -->
+    <Grid Grid.Column="1" Margin="12" RowDefinitions="Auto,Auto,*,Auto,Auto">
+      <StackPanel Grid.Row="0" Spacing="8">
+        <TextBlock Text="OCR 工作台" FontSize="20" FontWeight="Bold"/>
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <TextBlock Text="摄像头" VerticalAlignment="Center"/>
+          <ComboBox Width="280" ItemsSource="{Binding CameraPanel.Cameras}"
+                    SelectedItem="{Binding CameraPanel.SelectedCamera}"/>
+          <Button Content="刷新" Command="{Binding CameraPanel.RefreshCameraCommand}"/>
+        </StackPanel>
+        <TextBlock Text="{Binding CameraPanel.CameraStatus}" Foreground="Gray"/>
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <Button Content="截取并识别" Command="{Binding QuestionPanel.CaptureAndOcrCommand}"
+                  IsEnabled="{Binding QuestionPanel.CanCapture}"/>
+          <Button Content="撤销" Command="{Binding QuestionPanel.UndoCaptureCommand}"
+                  IsEnabled="{Binding QuestionPanel.CanUndo}"/>
+          <Button Content="全部清空" Command="{Binding QuestionPanel.ClearSessionCommand}"/>
+        </StackPanel>
+        <TextBlock FontSize="12" Foreground="Gray"
+                   Text="左键拖选识别区域，右键清除；未框选则识别整图"/>
+      </StackPanel>
+
+      <StackPanel Grid.Row="1" Margin="0,12,0,0" Spacing="4">
+        <TextBlock Text="当前选区预览" FontWeight="SemiBold"
+                   IsVisible="{Binding CameraPanel.HasSelectionPreview}"/>
+        <Border BorderBrush="LightGray" BorderThickness="1" Padding="4"
+                MaxHeight="200"
+                IsVisible="{Binding CameraPanel.HasSelectionPreview}">
+          <Image Source="{Binding CameraPanel.SelectionPreviewBitmap}" Stretch="Uniform"/>
+        </Border>
+        <TextBlock Text="已截取缩略图" FontSize="12" Foreground="Gray"
+                   IsVisible="{Binding CameraPanel.HasThumbnails}"/>
+        <ScrollViewer HorizontalScrollBarVisibility="Auto" MaxHeight="100"
+                      IsVisible="{Binding CameraPanel.HasThumbnails}">
+          <ItemsControl ItemsSource="{Binding CameraPanel.Thumbnails}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <StackPanel Orientation="Horizontal" Spacing="6"/>
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="panels:CaptureThumbnailItem">
+                <Border BorderBrush="LightGray" BorderThickness="1" Padding="2">
+                  <StackPanel Width="96">
+                    <Image Source="{Binding Image}" Height="54" Stretch="Uniform"/>
+                    <TextBlock Text="{Binding Sequence, StringFormat='第 {0} 张'}"
+                               HorizontalAlignment="Center" FontSize="11" Foreground="Gray"/>
+                  </StackPanel>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </ScrollViewer>
+      </StackPanel>
+
+      <Grid Grid.Row="2" Margin="0,12,0,0" RowDefinitions="Auto,*">
+        <TextBlock Text="累计 OCR 文本（可编辑）" FontWeight="Bold"/>
+        <ScrollViewer Grid.Row="1"
+                      x:Name="OcrTextScrollViewer"
+                      VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Disabled"
+                      MinHeight="120"
+                      Margin="0,4,0,0">
+          <TextBox Text="{Binding QuestionPanel.WorkingQuestionText}"
+                   AcceptsReturn="True"
+                   Watermark="多次截屏后 OCR 文本将自动拼接显示在此，也可手动修改"
+                   TextWrapping="Wrap"
+                   BorderThickness="0"
+                   MinWidth="{Binding Bounds.Width, ElementName=OcrTextScrollViewer}"/>
+        </ScrollViewer>
+      </Grid>
+
+      <Grid Grid.Row="3" ColumnDefinitions="*,Auto" Margin="0,8,0,0">
+        <TextBlock Text="{Binding QuestionPanel.StatsText}" Foreground="Gray" VerticalAlignment="Center"/>
+        <TextBlock Grid.Column="1" Text="{Binding QuestionPanel.MergeWarningText}"
+                   Foreground="#C45600" VerticalAlignment="Center" Margin="12,0,0,0"
+                   IsVisible="{Binding QuestionPanel.HasMergeWarning}"/>
+      </Grid>
+
+      <StackPanel Grid.Row="4" Orientation="Horizontal" Spacing="8" Margin="0,8,0,0">
+        <TextBlock Text="状态：" FontWeight="SemiBold" VerticalAlignment="Center"/>
+        <TextBlock Text="{Binding StatusText}" VerticalAlignment="Center"/>
+      </StackPanel>
+    </Grid>
+  </Grid>
+</Window>

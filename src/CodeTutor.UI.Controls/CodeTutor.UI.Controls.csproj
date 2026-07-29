@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>CodeTutor.UI.Controls</RootNamespace>
+    <AssemblyName>CodeTutor.UI.Controls</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Avalonia" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\CodeTutor.Application\CodeTutor.Application.csproj" />
+  </ItemGroup>
+</Project>

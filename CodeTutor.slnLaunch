@@ -8,5 +8,15 @@
         "DebugTarget": "CodeTutor.Desktop"
       }
     ]
+  },
+  {
+    "Name": "CodeTutor.OcrWorkbench",
+    "Projects": [
+      {
+        "Path": "src\\CodeTutor.OcrWorkbench\\CodeTutor.OcrWorkbench.csproj",
+        "Action": "Start",
+        "DebugTarget": "CodeTutor.OcrWorkbench"
+      }
+    ]
   }
 ]

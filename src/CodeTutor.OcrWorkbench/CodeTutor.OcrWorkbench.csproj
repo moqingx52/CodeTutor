@@ -1,10 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <RootNamespace>CodeTutor.Desktop</RootNamespace>
-    <AssemblyName>CodeTutor.Desktop</AssemblyName>
+    <RootNamespace>CodeTutor.OcrWorkbench</RootNamespace>
+    <AssemblyName>CodeTutor.OcrWorkbench</AssemblyName>
     <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
-    <ApplicationManifest>app.manifest</ApplicationManifest>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
   </PropertyGroup>
   <ItemGroup>

@@ -22,6 +22,18 @@ public static class DependencyInjection
         string? cameraSource,
         int maxCheckpointCount = 20)
     {
+        services.AddCodeTutorCaptureInfrastructure(ocrBaseUrl, cameraMode, cameraSource, maxCheckpointCount);
+        services.AddCodeTutorAiInfrastructure();
+        return services;
+    }
+
+    public static IServiceCollection AddCodeTutorCaptureInfrastructure(
+        this IServiceCollection services,
+        string ocrBaseUrl,
+        string cameraMode,
+        string? cameraSource,
+        int maxCheckpointCount = 20)
+    {
         AppPaths.EnsureCreated();
 
         var dbInitializer = new SqliteDatabaseInitializer(AppPaths.DatabasePath);
@@ -44,6 +56,21 @@ public static class DependencyInjection
             client.Timeout = TimeSpan.FromSeconds(15);
         });
 
+        services.AddSingleton<IAppSessionContext, AppSessionContext>();
+
+        services.AddSingleton<ICaptureAndOcrUseCase, CaptureAndOcrUseCase>();
+        services.AddSingleton<IUndoLastCaptureUseCase, UndoLastCaptureUseCase>();
+        services.AddSingleton<IClearSessionUseCase, ClearSessionUseCase>();
+        services.AddSingleton<IUpdateQuestionTextUseCase, UpdateQuestionTextUseCase>();
+        services.AddSingleton<ILoadSessionUseCase, LoadSessionUseCase>();
+        services.AddSingleton<IDeleteSessionUseCase, DeleteSessionUseCase>();
+        services.AddSingleton<IClearAllHistoryUseCase, ClearAllHistoryUseCase>();
+
+        return services;
+    }
+
+    public static IServiceCollection AddCodeTutorAiInfrastructure(this IServiceCollection services)
+    {
         services.AddSingleton<DeepSeekApiCallTracker>();
         services.AddHttpClient<DeepSeekTextAnswerProvider>();
         services.AddSingleton<VolcanoArkStubProvider>();
@@ -53,19 +80,10 @@ public static class DependencyInjection
         services.AddHttpClient<VolcanoArkVisionAnswerProvider>();
         services.AddSingleton<IVisionAnswerProvider>(sp => sp.GetRequiredService<VolcanoArkVisionAnswerProvider>());
 
-        services.AddSingleton<IAppSessionContext, AppSessionContext>();
-
-        services.AddSingleton<ICaptureAndOcrUseCase, CaptureAndOcrUseCase>();
-        services.AddSingleton<IUndoLastCaptureUseCase, UndoLastCaptureUseCase>();
-        services.AddSingleton<IClearSessionUseCase, ClearSessionUseCase>();
         services.AddSingleton<ISolveTextUseCase, SolveTextUseCase>();
         services.AddSingleton<ISolveVisionUseCase, SolveVisionUseCase>();
-        services.AddSingleton<ILoadSessionUseCase, LoadSessionUseCase>();
         services.AddSingleton<ISaveAndTestApiUseCase, SaveAndTestApiUseCase>();
         services.AddSingleton<ISendFollowUpUseCase, SendFollowUpUseCase>();
-        services.AddSingleton<IUpdateQuestionTextUseCase, UpdateQuestionTextUseCase>();
-        services.AddSingleton<IDeleteSessionUseCase, DeleteSessionUseCase>();
-        services.AddSingleton<IClearAllHistoryUseCase, ClearAllHistoryUseCase>();
 
         return services;
     }

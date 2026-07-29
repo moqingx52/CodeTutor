@@ -1,21 +1,24 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Shapes;
+using Avalonia.Data;
 using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using CodeTutor.Application.Abstractions;
 
-namespace CodeTutor.Desktop.Controls;
+namespace CodeTutor.UI.Controls;
 
 public partial class CameraPreviewWithRoi : UserControl
 {
     private const double MinRegionFraction = 0.02;
+    private static readonly TimeSpan RegionCommitInterval = TimeSpan.FromMilliseconds(33);
 
     private readonly Canvas _overlayCanvas;
     private readonly Rectangle _selectionRect;
     private Point? _dragStart;
     private bool _isDragging;
+    private DateTime _lastRegionCommit = DateTime.MinValue;
 
     public static readonly StyledProperty<IImage?> SourceProperty =
         AvaloniaProperty.Register<CameraPreviewWithRoi, IImage?>(nameof(Source));
@@ -23,7 +26,10 @@ public partial class CameraPreviewWithRoi : UserControl
     public static readonly StyledProperty<NormalizedRectangle?> RegionProperty =
         AvaloniaProperty.Register<CameraPreviewWithRoi, NormalizedRectangle?>(
             nameof(Region),
-            defaultBindingMode: Avalonia.Data.BindingMode.TwoWay);
+            defaultBindingMode: BindingMode.TwoWay);
+
+    public static readonly StyledProperty<bool> LivePreviewEnabledProperty =
+        AvaloniaProperty.Register<CameraPreviewWithRoi, bool>(nameof(LivePreviewEnabled), true);
 
     public CameraPreviewWithRoi()
     {
@@ -58,7 +64,7 @@ public partial class CameraPreviewWithRoi : UserControl
 
         SizeChanged += (_, _) => UpdateSelectionVisual();
         RegionProperty.Changed.AddClassHandler<CameraPreviewWithRoi>((c, _) => c.UpdateSelectionVisual());
-        SourceProperty.Changed.AddClassHandler<CameraPreviewWithRoi>((c, _) => c.UpdateSelectionVisual());
+        SourceProperty.Changed.AddClassHandler<CameraPreviewWithRoi>((c, _) => c.OnSourceChanged());
     }
 
     public IImage? Source
@@ -71,6 +77,20 @@ public partial class CameraPreviewWithRoi : UserControl
     {
         get => GetValue(RegionProperty);
         set => SetValue(RegionProperty, value);
+    }
+
+    public bool LivePreviewEnabled
+    {
+        get => GetValue(LivePreviewEnabledProperty);
+        set => SetValue(LivePreviewEnabledProperty, value);
+    }
+
+    private void OnSourceChanged()
+    {
+        if (_isDragging)
+            return;
+
+        UpdateSelectionVisual();
     }
 
     private void OnPointerPressed(object? sender, PointerPressedEventArgs e)
@@ -88,6 +108,7 @@ public partial class CameraPreviewWithRoi : UserControl
 
         _dragStart = e.GetPosition(_overlayCanvas);
         _isDragging = true;
+        _lastRegionCommit = DateTime.MinValue;
         _selectionRect.IsVisible = true;
         Canvas.SetLeft(_selectionRect, _dragStart.Value.X);
         Canvas.SetTop(_selectionRect, _dragStart.Value.Y);
@@ -103,15 +124,14 @@ public partial class CameraPreviewWithRoi : UserControl
             return;
 
         var current = e.GetPosition(_overlayCanvas);
-        var x = Math.Min(_dragStart.Value.X, current.X);
-        var y = Math.Min(_dragStart.Value.Y, current.Y);
-        var w = Math.Abs(current.X - _dragStart.Value.X);
-        var h = Math.Abs(current.Y - _dragStart.Value.Y);
+        var controlRect = NormalizeControlRect(_dragStart.Value, current);
 
-        Canvas.SetLeft(_selectionRect, x);
-        Canvas.SetTop(_selectionRect, y);
-        _selectionRect.Width = w;
-        _selectionRect.Height = h;
+        Canvas.SetLeft(_selectionRect, controlRect.X);
+        Canvas.SetTop(_selectionRect, controlRect.Y);
+        _selectionRect.Width = controlRect.Width;
+        _selectionRect.Height = controlRect.Height;
+
+        TryCommitRegion(controlRect, force: false);
         e.Handled = true;
     }
 
@@ -134,9 +154,32 @@ public partial class CameraPreviewWithRoi : UserControl
             return;
         }
 
-        Region = region;
+        TryCommitRegion(controlRect, force: true);
+        if (Region != region)
+            Region = region;
+
         UpdateSelectionVisual();
         e.Handled = true;
+    }
+
+    private void TryCommitRegion(Rect controlRect, bool force)
+    {
+        if (!LivePreviewEnabled)
+            return;
+
+        if (!force)
+        {
+            var now = DateTime.UtcNow;
+            if (now - _lastRegionCommit < RegionCommitInterval)
+                return;
+        }
+
+        if (!TryMapControlRectToRegion(controlRect, out var region))
+            return;
+
+        _lastRegionCommit = DateTime.UtcNow;
+        if (Region != region)
+            Region = region;
     }
 
     private void ClearRegion()
@@ -147,10 +190,12 @@ public partial class CameraPreviewWithRoi : UserControl
 
     private void UpdateSelectionVisual()
     {
-        if (_isDragging || Region is null)
+        if (_isDragging)
+            return;
+
+        if (Region is null)
         {
-            if (Region is null)
-                _selectionRect.IsVisible = false;
+            _selectionRect.IsVisible = false;
             return;
         }
 
