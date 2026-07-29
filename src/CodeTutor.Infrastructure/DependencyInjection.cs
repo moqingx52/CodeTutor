@@ -4,6 +4,7 @@ using CodeTutor.Application.State;
 using CodeTutor.Application.UseCases;
 using CodeTutor.Infrastructure.Ai;
 using CodeTutor.Infrastructure.Camera;
+using CodeTutor.Infrastructure.Imaging;
 using CodeTutor.Infrastructure.Ocr;
 using CodeTutor.Infrastructure.Persistence;
 using CodeTutor.Infrastructure.Secrets;
@@ -31,6 +32,8 @@ public static class DependencyInjection
         services.AddSingleton<IImageStore, FileImageStore>();
         services.AddSingleton<ISecretStore, EnvironmentSecretStore>();
         services.AddSingleton<IQuestionTextMerger, QuestionTextMerger>();
+        services.AddSingleton<ICaptureRegionProvider, CaptureRegionProvider>();
+        services.AddSingleton<IImageCropper, SkiaImageCropper>();
 
         services.AddSingleton<ICameraService>(_ =>
             CameraServiceFactory.Create(cameraMode, cameraSource));

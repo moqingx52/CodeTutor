@@ -52,7 +52,17 @@ public partial class CameraPanelViewModel : ObservableObject
     [ObservableProperty]
     private bool _hasThumbnails;
 
+    [ObservableProperty]
+    private NormalizedRectangle? _captureRegion;
+
+    [ObservableProperty]
+    private bool _hasCaptureRegion;
+
     public IRelayCommand? RefreshCameraCommand { get; set; }
+    public IRelayCommand? ClearCaptureRegionCommand { get; set; }
+
+    partial void OnCaptureRegionChanged(NormalizedRectangle? value) =>
+        HasCaptureRegion = value is not null;
 }
 
 public partial class QuestionPanelViewModel : ObservableObject

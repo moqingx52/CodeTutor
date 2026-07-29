@@ -13,6 +13,8 @@ public sealed class CaptureAndOcrUseCase : ICaptureAndOcrUseCase
     private readonly IOcrService _ocr;
     private readonly IQuestionTextMerger _merger;
     private readonly ICheckpointStore _checkpoints;
+    private readonly ICaptureRegionProvider _captureRegion;
+    private readonly IImageCropper _imageCropper;
 
     public CaptureAndOcrUseCase(
         IAppSessionContext session,
@@ -20,7 +22,9 @@ public sealed class CaptureAndOcrUseCase : ICaptureAndOcrUseCase
         IImageStore imageStore,
         IOcrService ocr,
         IQuestionTextMerger merger,
-        ICheckpointStore checkpoints)
+        ICheckpointStore checkpoints,
+        ICaptureRegionProvider captureRegion,
+        IImageCropper imageCropper)
     {
         _session = session;
         _camera = camera;
@@ -28,12 +32,18 @@ public sealed class CaptureAndOcrUseCase : ICaptureAndOcrUseCase
         _ocr = ocr;
         _merger = merger;
         _checkpoints = checkpoints;
+        _captureRegion = captureRegion;
+        _imageCropper = imageCropper;
     }
 
     public async Task ExecuteAsync(CancellationToken ct)
     {
         var frame = _camera.TryGetLatestFrameCopy()
                     ?? throw new InvalidOperationException("没有可用的相机帧，请确认预览已启动。");
+
+        var imageData = frame.Data;
+        if (_captureRegion.Region is { } region)
+            imageData = _imageCropper.Crop(imageData, region);
 
         var session = _session.Current;
         await _checkpoints.PushAsync(new SessionCheckpoint(
@@ -46,10 +56,10 @@ public sealed class CaptureAndOcrUseCase : ICaptureAndOcrUseCase
             DateTimeOffset.UtcNow), ct);
 
         var sequence = session.Captures.Count + 1;
-        await using var imageStream = new MemoryStream(frame.Data);
+        await using var imageStream = new MemoryStream(imageData);
         var (imagePath, thumbPath) = await _imageStore.SaveCaptureAsync(session.Id, sequence, imageStream, ct);
 
-        var pHash = ComputePerceptualHash(frame.Data);
+        var pHash = ComputePerceptualHash(imageData);
         if (session.Captures.Any(c => c.PerceptualHash == pHash))
         {
             await _checkpoints.PopAsync(session.Id, ct);
@@ -65,7 +75,7 @@ public sealed class CaptureAndOcrUseCase : ICaptureAndOcrUseCase
 
         try
         {
-            await using var ocrStream = new MemoryStream(frame.Data);
+            await using var ocrStream = new MemoryStream(imageData);
             ocrResult = await _ocr.RecognizeAsync(
                 ocrStream,
                 new OcrRequestOptions(RequestId: Guid.NewGuid().ToString("N")),
@@ -110,7 +120,6 @@ public sealed class CaptureAndOcrUseCase : ICaptureAndOcrUseCase
 
     private static string ComputePerceptualHash(byte[] data)
     {
-        // 简单哈希占位；Infrastructure 层在后续可注入专用服务。
         var hash = System.Security.Cryptography.SHA256.HashData(data);
         return Convert.ToHexString(hash)[..32];
     }

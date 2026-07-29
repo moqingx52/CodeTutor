@@ -34,6 +34,7 @@ public partial class MainWindowViewModel : ObservableObject
     private readonly ISecretStore _secrets;
     private readonly ITextAnswerProvider _textProvider;
     private readonly RoutingTextAnswerProvider _routingProvider;
+    private readonly ICaptureRegionProvider _captureRegionProvider;
     private readonly IServiceProvider _services;
 
     private CancellationTokenSource? _previewCts;
@@ -70,6 +71,7 @@ public partial class MainWindowViewModel : ObservableObject
         ISecretStore secrets,
         ITextAnswerProvider textProvider,
         RoutingTextAnswerProvider routingProvider,
+        ICaptureRegionProvider captureRegionProvider,
         IServiceProvider services)
     {
         _camera = camera;
@@ -87,12 +89,20 @@ public partial class MainWindowViewModel : ObservableObject
         _secrets = secrets;
         _textProvider = textProvider;
         _routingProvider = routingProvider;
+        _captureRegionProvider = captureRegionProvider;
         _services = services;
 
         _routingProvider.Tracker.BalanceRefreshNeeded += (_, _) =>
             _ = RefreshBalanceAsync();
 
         _session.SessionChanged += (_, _) => SyncFromSession();
+
+        CameraPanel.ClearCaptureRegionCommand = new RelayCommand(() => CameraPanel.CaptureRegion = null);
+        CameraPanel.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(CameraPanelViewModel.CaptureRegion))
+                _captureRegionProvider.Region = CameraPanel.CaptureRegion;
+        };
 
         QuestionPanel.CaptureAndOcrCommand = new AsyncRelayCommand(CaptureAndOcrAsync);
         QuestionPanel.UndoCaptureCommand = new AsyncRelayCommand(UndoAsync);
