@@ -50,9 +50,8 @@ public sealed class QuestionTextMerger : IQuestionTextMerger
             return new MergeResult(merged.TrimEnd(), charOverlap);
         }
 
-        var separator = "\n\n--- 新截图：未检测到可靠重叠，请检查 ---\n";
         return new MergeResult(
-            existingText.TrimEnd() + separator + incomingText,
+            existingText.TrimEnd() + incomingText,
             new MergeDecision(MergeStrategy.NoOverlapWithWarning, 0, 0, 0, false));
     }
 

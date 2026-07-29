@@ -8,6 +8,7 @@ using CodeTutor.Application.Abstractions;
 using CodeTutor.Application.Ai;
 using CodeTutor.Application.State;
 using CodeTutor.Application.UseCases;
+using CodeTutor.Domain.Common;
 using CodeTutor.Desktop.ViewModels.Panels;
 using CodeTutor.Desktop.Views;
 using CodeTutor.Domain.Ocr;
@@ -389,8 +390,11 @@ public partial class MainWindowViewModel : ObservableObject
         try
         {
             await _clearSession.ExecuteAsync(CancellationToken.None);
+            FeedbackPanel.Messages.Clear();
+            FeedbackPanel.UserMessage = string.Empty;
             StatusText = "已清空当前会话";
             AddFeedback("系统", "会话已清空");
+            SyncFromSession();
         }
         catch (Exception ex)
         {
@@ -494,22 +498,25 @@ public partial class MainWindowViewModel : ObservableObject
 
     private async Task SendFollowUpAsync()
     {
+        if (!FeedbackPanel.CanSendFollowUp || _session.Current.Solution is null)
+            return;
+
         if (string.IsNullOrWhiteSpace(FeedbackPanel.UserMessage))
             return;
 
         var message = FeedbackPanel.UserMessage;
         FeedbackPanel.UserMessage = string.Empty;
-        AddFeedback("用户", message);
+        StatusText = "正在回复追问…";
 
         try
         {
             await _sendFollowUp.ExecuteAsync(message, CancellationToken.None);
-            var last = _session.Current.ChatMessages.LastOrDefault(m => m.Type == Domain.Common.FeedbackMessageType.Assistant);
-            if (last is not null)
-                AddFeedback("助手", last.Content);
+            StatusText = "追问已回复";
+            SyncFromSession();
         }
         catch (Exception ex)
         {
+            StatusText = $"追问失败：{ex.Message}";
             AddFeedback("错误", ex.Message);
         }
     }
@@ -564,10 +571,26 @@ public partial class MainWindowViewModel : ObservableObject
 
             QuestionPanel.StatsText = stats;
 
+            var lastMerge = session.Captures.LastOrDefault()?.MergeDecision;
+            if (lastMerge?.Strategy == MergeStrategy.NoOverlapWithWarning)
+            {
+                QuestionPanel.MergeWarningText = "未检测到重叠，请检查截图";
+                QuestionPanel.HasMergeWarning = true;
+            }
+            else
+            {
+                QuestionPanel.MergeWarningText = string.Empty;
+                QuestionPanel.HasMergeWarning = false;
+            }
+
             RefreshThumbnails(session);
-            UpdateSolutionPanel(session.Solution);
+            UpdateSolutionPanel(session.Solution, session.ChatMessages);
 
             SolutionPanel.CanSolveText = !string.IsNullOrWhiteSpace(session.WorkingQuestionText);
+            FeedbackPanel.CanSendFollowUp = session.Solution is not null;
+            if (!FeedbackPanel.CanSendFollowUp)
+                FeedbackPanel.UserMessage = string.Empty;
+
             UpdateImageSolveState();
         }
         finally
@@ -595,9 +618,12 @@ public partial class MainWindowViewModel : ObservableObject
         };
     }
 
-    private void UpdateSolutionPanel(SolutionResult? solution)
+    private void UpdateSolutionPanel(SolutionResult? solution, IReadOnlyList<ChatMessage>? chatMessages = null)
     {
         SolutionPanel.IsProgramming = solution?.QuestionType == QuestionType.Programming;
+        var followUp = FormatFollowUpText(chatMessages ?? []);
+        SolutionPanel.FollowUpText = followUp;
+        SolutionPanel.HasFollowUp = !string.IsNullOrWhiteSpace(followUp);
 
         if (solution is null)
         {
@@ -629,6 +655,35 @@ public partial class MainWindowViewModel : ObservableObject
             ? string.Empty
             : $"解题思路：{explanation}";
         SolutionPanel.CodeText = string.Empty;
+    }
+
+    private static string FormatFollowUpText(IReadOnlyList<ChatMessage> messages)
+    {
+        if (messages.Count == 0)
+            return string.Empty;
+
+        var parts = new List<string>();
+        for (var i = 0; i < messages.Count; i++)
+        {
+            var msg = messages[i];
+            if (msg.Type == FeedbackMessageType.User)
+            {
+                var block = $"问：{msg.Content}";
+                if (i + 1 < messages.Count && messages[i + 1].Type == FeedbackMessageType.Assistant)
+                {
+                    block += $"\n答：{messages[i + 1].Content}";
+                    i++;
+                }
+
+                parts.Add(block);
+            }
+            else if (msg.Type == FeedbackMessageType.Assistant)
+            {
+                parts.Add($"答：{msg.Content}");
+            }
+        }
+
+        return parts.Count == 0 ? string.Empty : "追问：\n" + string.Join("\n\n", parts);
     }
 
     private void RefreshThumbnails(Domain.Sessions.StudySession session)
@@ -673,7 +728,7 @@ public partial class MainWindowViewModel : ObservableObject
         MergeStrategy.First => string.Empty,
         MergeStrategy.LineOverlap => $" · 重叠 {decision.OverlapLineCount} 行",
         MergeStrategy.CharacterOverlap => $" · 字符重叠 {decision.OverlapCharCount}",
-        MergeStrategy.NoOverlapWithWarning => " · 未检测到重叠",
+        MergeStrategy.NoOverlapWithWarning => " · 未检测到重叠，请检查截图",
         MergeStrategy.DuplicateSkipped => " · 重复截图",
         _ => string.Empty
     };

@@ -12,28 +12,6 @@ namespace CodeTutor.Infrastructure.Ai;
 
 public sealed class DeepSeekTextAnswerProvider : ITextAnswerProvider
 {
-    private const string SystemPrompt = """
-        你是面向儿童编程学习的题目辅导器。
-        只依据用户提供的完整题目作答，不得虚构缺失条件。
-        先判断题目类型：choice、fill、programming、unknown。
-
-        输出必须是严格 JSON：
-        {
-          "questionType": "...",
-          "finalAnswer": "...",
-          "explanation": "...",
-          "code": "...",
-          "programmingLanguage": "...",
-          "needsMoreContext": false,
-          "confidence": 0.0
-        }
-
-        选择题和填空题：先在 finalAnswer 给出直接答案，再在 explanation 给出简洁思路。
-        编程题：将完整可运行代码放在 code；finalAnswer 和 explanation 留空。
-        如果题干明显缺页、OCR 断裂或条件冲突，needsMoreContext=true，并说明缺少什么。
-        不要输出 JSON 以外的内容。
-        """;
-
     private readonly HttpClient _http;
     private readonly ISecretStore _secrets;
     private readonly DeepSeekOptions _options;
@@ -70,7 +48,7 @@ public sealed class DeepSeekTextAnswerProvider : ITextAnswerProvider
             apiKey,
             model,
             [
-                new ChatMessageDto("system", SystemPrompt),
+                new ChatMessageDto("system", AiSolutionPrompts.TextSolveSystemPrompt),
                 new ChatMessageDto("user", userMessage)
             ],
             jsonMode: true,
@@ -105,7 +83,7 @@ public sealed class DeepSeekTextAnswerProvider : ITextAnswerProvider
             apiKey,
             model,
             [
-                new ChatMessageDto("system", "你是儿童编程辅导助手。根据已有题目和解答，简洁回答孩子的追问。不要重复整题。"),
+                new ChatMessageDto("system", AiSolutionPrompts.FollowUpSystemPrompt),
                 new ChatMessageDto("user", context),
                 new ChatMessageDto("user", message)
             ],

@@ -74,6 +74,12 @@ public partial class QuestionPanelViewModel : ObservableObject
     private string _statsText = "已截取 0 张";
 
     [ObservableProperty]
+    private string _mergeWarningText = string.Empty;
+
+    [ObservableProperty]
+    private bool _hasMergeWarning;
+
+    [ObservableProperty]
     private bool _canCapture = true;
 
     [ObservableProperty]
@@ -91,6 +97,12 @@ public partial class SolutionPanelViewModel : ObservableObject
 
     [ObservableProperty]
     private string _explanationText = string.Empty;
+
+    [ObservableProperty]
+    private string _followUpText = string.Empty;
+
+    [ObservableProperty]
+    private bool _hasFollowUp;
 
     [ObservableProperty]
     private string _codeText = string.Empty;
@@ -118,6 +130,9 @@ public partial class FeedbackPanelViewModel : ObservableObject
 
     [ObservableProperty]
     private string _userMessage = string.Empty;
+
+    [ObservableProperty]
+    private bool _canSendFollowUp;
 
     public IRelayCommand? SendFollowUpCommand { get; set; }
 }
